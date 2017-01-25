@@ -17,13 +17,13 @@ The goals / steps of this project are the following:
 * Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
 
 [//]: # (Image References)
-[distort]: ./distorted_checkerboard.png "Distorted"
-[image1]: ./undistort_car.png "Undistorted"
-[image3]: ./binary_image.png "Binary Example"
-[image4]: ./straight_topdown.png "Warp Example"
-[lanePixelID]: ./lane_pixel_identification.png "Fit Visual"
-[lanePoly]: ./lane_polynomials.png "Fit Visual"
-[image6]: ./output.png "Output"
+[distort]: ./output_images/distorted_checkerboard.png "Distorted"
+[image1]: ./output_images/undistort_car.png "Undistorted"
+[image3]: ./output_images/binary_image.png "Binary Example"
+[image4]: ./output_images/straight_topdown.png "Warp Example"
+[lanePixelID]: ./output_images/lane_pixel_identification.png "Fit Visual"
+[lanePoly]: ./output_images/lane_polynomials.png "Fit Visual"
+[image6]: ./output_images/output.png "Output"
 [video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
