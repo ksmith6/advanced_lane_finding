@@ -22,6 +22,7 @@ The goals / steps of this project are the following:
 [image3]: ./output_images/binary_image.png "Binary Example"
 [image4]: ./output_images/straight_topdown.png "Warp Example"
 [lanePixelID]: ./output_images/lane_pixel_identification.png "Fit Visual"
+[medianFiltering]: ./output_images/median_filtering.png "Rejecting Spurious Measurements"
 [lanePoly]: ./output_images/lane_polynomials.png "Fit Visual"
 [image6]: ./output_images/output.png "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -103,15 +104,26 @@ First, the algorithm computes a histogram of the bottom half of the warped image
 
 The fine solution algorithm works by dividing the image into 9 horizontal stripes.  Using the prior solution (or the coarse solution on the first iteration), a search window is established about that point.  The width of the search window is defined is 1/5 of the width of the overall image, and the height is defined to lie within the current horizontal stripe.  The **fine** search process works by computing the histogram over the small search window.  If enough lane pixels exist within the search window, then the peak is identified within the search window.  As long as the location of the new peak does not differ too greatly from the previous peak, then it is accepted as the new peak.  
 
-If there are not enough lane pixels detected in the existing search window, then the algorithm simply uses the previous x-coordinate of the previous peak under the assumption that it hasn't changed too much.  This helps to prevent wild swings in the subsequent polynomial fit.
+If there are not enough lane pixels detected in the existing search window, then the algorithm simply outputs a stale $$x$$-coordinate of the previous stripe's $$x$$-coordinate.  I had attempted a solution to expand the search area, but it would occasionally lead to failure of the primary algorithm, so I removed that logic.
+
 
 This process repeats over all the horizontal stripes in the image for the left and right lane lines. 
 
-The output of all this is a set of $$ (x,y) $$ coordinates (key points) for each lane that represent the lane pixels.  Based on these coordinates, a 2nd-order polynomial is fit using the `np.polyfit()` function.
-
-Finally, I compute a smooth set of points based on these polynomial fits.  Below is an image showing the lane pixel identification.
+The output of all this is a set of $$ (x,y) $$ coordinates which I will refer to as **key points** for each lane that represent the lane pixels.  The key points are shown as yellow dots in the image below.
 
 ![alt text][lanePixelID]
+
+**Filtering Code**
+
+These $$ (x,y) $$ coordinates are recorded by the `Line` objects which records the last $$N$$ sets of key points from the last $$N$$ frames of the video.  Upon saving the key points into the `Line` object, it will fit a quadratic polynomial to the keypoints and then interpolate the polynomial across the image.  These $$M$$ interpolated points are saved for each stored frame of video.
+
+Next, for each frame, the median interpolated value at each sampled $$y$$-value is computed.  Effectively, this is taking the median value of the fit polynomials at each $$y$$-sample.
+
+Finally, a 2nd-order polynomial fit is derived from the set of median keypoints.  These are the curves that are used to create the polygon overlay on the road.
+
+As implemented, the technique is currently designed to retain the key points from the last 10 frames of video.  This has the effect of introducing some lag into the lane-detection, and this lag is most noticeable when the vehicle is pitching up and down.  One can notice the overlay temporarily lagging behind the actual lane markers for a few frames.  This lag is a natural consequence of the fact that we are smoothing the raw measurement signal with prior stale solutions.  However, the benefit of this technique is that it performs well in rejecting spurious lane detections over a few frames.  Below is a plot of a test where spurious key points were incorporated over 5 frames.  The raw key points are shown as connected red dots and the polynomial fit to the median key points is shown in black. 
+
+![alt text][medianFiltering]
 
 Here is a plot of the fit polynomials.
 
@@ -153,4 +165,4 @@ This project was challenging because it required so much iterative tuning to get
 
 The binary image thresholding algorithm seems to lack robustness.   Rather than performing a bitwise `OR` across the various layers, it would be better to somehow combine the layers in a probabilistic fashion (convolving each layer together) and then normalizing.  This would help to mitigate the effects of a single layer encountering problems.  For instance, the edge detection channel may report a lot of false positives due to shadows in the roadway, but the Saturation channel may successfully reject those shadows.  Due to the disagreement, those binary pixels should be treated with more suspicion and have a lower probability of surviving into the final output binary image.
 
-The lane-pixel-finding algorithm is also brittle.  This algorithm begs for a Kalman filter or a particle filter to help estimate and track the position of the lane lines from image to image.  It would also help to smoothen the jumpiness of the polynomial fits.  The problem is that the image processing is basically starting from scratch on every frame, and it doesn't benefit from any _a priori_ knowledge from the previous frame.  As a result, jumpiness in the solution is to be expected.  A Kalman filter, in particular, would help to persist the previous lane markers even if no pixels were detected in that area on the current image.  Additionally, it would smoothen the updates because the individual frames (measurements) could be de-weighted enough to not introduce jitter into the solution.
+The lane-pixel-finding algorithm is also brittle.  This algorithm begs for a Kalman filter or a particle filter to help estimate and track the position of the lane lines from image to image.  I've implemented a simple smoothing technique with rudimentary rejection of spurious measurements, but a more fully-featured solution like residual editing from Kalman filtering would be simpler to maintain with fewer edges cases.
